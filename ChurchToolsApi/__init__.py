@@ -146,7 +146,7 @@ class ChurchToolsApi:
         :return: list of user dicts
         :rtype: list[dict]
         """
-        url = self.domain + '/api/persons'
+        url = self.domain + '/api/persons'  # ?limit=500'
         params = {}
         if 'ids' in kwargs.keys():
             params['ids[]'] = kwargs['ids']
@@ -685,6 +685,80 @@ class ChurchToolsApi:
             return response_data
         else:
             logging.warning("Something went wrong fetching events: {}".format(response.status_code))
+
+
+    def set_appointments(self, **kwargs):
+        """
+        Method to set appointments
+        :param kwargs: optional params to modify the search criteria
+        :key calendarId: int: ID from calendar to set the appointment within
+        :key from_: str: with starting date in format YYYY-MM-DD - added _ to name as opposed to ct_api because of reserved keyword
+        :key to_: str: end date in format YYYY-MM-DD ONLY allowed with from_ - added _ to name as opposed to ct_api because of reserved keyword
+        :key canceled: bool: If true, include also canceled events
+        :key direction: str: direction of output 'forward' or 'backward' from the date defined by parameter 'from'
+        :key limit: int: limits the number of events - Default = 1, if all events shall be retrieved insert 'None', only applies if direction is specified
+        :key include: str: if Parameter is set to 'eventServices', the services of the event will be included
+        :return: list of events
+        :rtype: list[dict]
+        """
+        url = self.domain + '/api/events'
+
+        headers = {
+            'accept': 'application/json'
+        }
+        params = {}
+
+        if 'eventId' in kwargs.keys():
+            url += '/{}'.format(kwargs['eventId'])
+
+        else:
+            if 'from_' in kwargs.keys():
+                if len(kwargs['from_']) == 10:
+                    params['from'] = kwargs['from_']
+            if 'to_' in kwargs.keys() and 'from_' in kwargs.keys():
+                if len(kwargs['to_']) == 10:
+                    params['to'] = kwargs['to_']
+            elif 'to_' in kwargs.keys():
+                logging.warning('Use of to_ is only allowed together with from_')
+            if 'canceled' in kwargs.keys():
+                params['canceled'] = kwargs['canceled']
+            if 'direction' in kwargs.keys():
+                params['direction'] = kwargs['direction']
+            if 'limit' in kwargs.keys() and 'direction' in kwargs.keys():
+                params['limit'] = kwargs['limit']
+            elif 'direction' in kwargs.keys():
+                logging.warning('Use of limit is only allowed together with direction keyword')
+            if 'include' in kwargs.keys():
+                params['include'] = kwargs['include']
+
+        response = self.session.get(url=url, params=params, headers=headers)
+
+        if response.status_code == 200:
+            response_content = json.loads(response.content)
+            response_data = response_content['data'].copy()
+            logging.debug("First response of Events successful {}".format(response_content))
+
+            if 'meta' not in response_content.keys():  # Shortcut without Pagination
+                return [response_data] if isinstance(response_data, dict) else response_data
+
+            if 'pagination' not in response_content['meta'].keys():
+                return [response_data] if isinstance(response_data, dict) else response_data
+
+            # Long part extending results with pagination
+            # TODO #1 copied from other method unsure if pagination works the same as with groups
+            while response_content['meta']['pagination']['current'] \
+                    < response_content['meta']['pagination']['lastPage']:
+                logging.info("page {} of {}".format(response_content['meta']['pagination']['current'],
+                                                    response_content['meta']['pagination']['lastPage']))
+                params = {'page': response_content['meta']['pagination']['current'] + 1}
+                response = self.session.get(url=url, headers=headers, params=params)
+                response_content = json.loads(response.content)
+                response_data.extend(response_content['data'])
+
+            return response_data
+        else:
+            logging.warning("Something went wrong fetching events: {}".format(response.status_code))
+
 
     def get_AllEventData_ajax(self, eventId):
         """
