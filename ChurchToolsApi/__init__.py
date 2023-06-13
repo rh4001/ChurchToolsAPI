@@ -143,13 +143,17 @@ class ChurchToolsApi:
         :param kwargs: optional keywords as listed
         :keyword ids: list: of a ids filter
         :keyword returnAsDict: bool: true if should return a dict instead of list
+        :keyword isArchived: bool
         :return: list of user dicts
         :rtype: list[dict]
         """
-        url = self.domain + '/api/persons'  # ?limit=500'
+        url = self.domain + '/api/persons?limit=500'
         params = {}
+        if 'isArchived' in kwargs.keys():
+            url += '&is_archived=false'
         if 'ids' in kwargs.keys():
             params['ids[]'] = kwargs['ids']
+
 
         headers = {
             'accept': 'application/json'
@@ -701,7 +705,7 @@ class ChurchToolsApi:
         :return: list of events
         :rtype: list[dict]
         """
-        url = self.domain + '/api/events'
+        url = self.domain + '/api/appointments'
 
         headers = {
             'accept': 'application/json'
