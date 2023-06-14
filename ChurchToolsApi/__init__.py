@@ -689,12 +689,12 @@ class ChurchToolsApi:
         else:
             logging.warning("Something went wrong fetching events: {}".format(response.status_code))
 
-
-    def set_appointments(self, calendarId: int, **kwargs):
+    def set_appointments(self, calendarId, **kwargs):
         """
         Method to set appointments
+        :param calendarId: ID from calendar to set the appointment in
+        :key calendarId: int
         :param kwargs: optional params to modify the appointment
-        :key calendarId: int: ID from calendar to set the appointment in
         :key caption
         :return: tbd
         :rtype: tbd
@@ -720,7 +720,6 @@ class ChurchToolsApi:
             return response_data
         else:
             logging.warning("Something went wrong creating the appointment: {}".format(response.status_code))
-
 
     def get_AllEventData_ajax(self, eventId):
         """
