@@ -150,7 +150,7 @@ class ChurchToolsApi:
         url = self.domain + '/api/persons?limit=500'
         params = {}
         if 'isArchived' in kwargs.keys():
-            url += '&is_archived=false'
+            url += '&is_archived={}'.format(kwargs["isArchived"])
         if 'ids' in kwargs.keys():
             params['ids[]'] = kwargs['ids']
 
