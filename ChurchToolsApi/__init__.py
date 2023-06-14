@@ -105,11 +105,7 @@ class ChurchToolsApi:
         """
 
         url = self.domain + '/api/whoami'
-        headers = {
-            'accept': 'application/json',
-            'Accept-Charset': 'UTF-8'
-        }
-        response = self.session.get(url=url, headers=headers)
+        response = self.session.get(url=url)
 
         if response.status_code == 200:
             response_content = json.loads(response.content)
