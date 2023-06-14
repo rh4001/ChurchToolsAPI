@@ -154,7 +154,6 @@ class ChurchToolsApi:
         if 'ids' in kwargs.keys():
             params['ids[]'] = kwargs['ids']
 
-
         headers = {
             'accept': 'application/json'
         }
