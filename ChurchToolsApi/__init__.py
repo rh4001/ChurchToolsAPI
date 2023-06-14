@@ -695,7 +695,7 @@ class ChurchToolsApi:
         """
         Method to set appointments
         :param kwargs: optional params to modify the appointment
-        :key calendarId: int: ID from calendar to set the appointment within
+        :key calendarId: int: ID from calendar to set the appointment in
         :key caption
         :return: tbd
         :rtype: tbd
@@ -709,24 +709,18 @@ class ChurchToolsApi:
         data = {}
         for key in kwargs.keys():
             if kwargs[key] is not None:
-                print(key)
                 data[key] = kwargs[key]
 
-        # print(data)
-
         response = self.session.post(url=url, headers=headers, data=data)
-        # print(response.status_code)
-        # print(response.content)
 
-        if response.status_code == 200:
+        if response.status_code == 201:
             response_content = json.loads(response.content)
+            print(response_content)
             response_data = response_content['data'].copy()
-            logging.debug("First response of Events successful {}".format(response_content))
-            print(response_data)
+            logging.debug("Appointment successfully created {}".format(response_content))
             return response_data
         else:
-            logging.warning("Something went wrong fetching events: {}".format(response.status_code))
-            print(response.content)
+            logging.warning("Something went wrong creating the appointment: {}".format(response.status_code))
 
 
     def get_AllEventData_ajax(self, eventId):
