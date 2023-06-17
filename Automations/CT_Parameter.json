@@ -1,0 +1,48 @@
+{
+    "Standort": {
+        "Lemgo": 0,
+        "Hameln": 4,
+        "FZH": 7
+    },
+    "Status": {
+        "System": 5,
+        "Nicht-Mitglied": 0,
+        "Interessent": 2,
+        "Freund": 1,
+        "Mitglied": 3,
+        "zu löschen": 4
+    },
+    "Geschlecht": {
+        "Mann": 1,
+        "Frau": 2
+    },
+    "Email-Label": {
+        "Privat": 3,
+        "Arbeit": 6,
+        "Gemeinde": 7,
+        "System": 8,
+        "Eltern": 9
+    },
+    "Familienstatus": {
+        "unbekannt": 0,
+        "ledig": 1,
+        "verheiratet": 2,
+        "getrennt": 3,
+        "geschieden": 4,
+        "verwitwet": 5,
+        "alleinstehend": 6
+    },
+    "DSGVO": {
+        "Wodurch": {
+            "Schriftlich außerhalb CT": 3,
+            "Gruppenanmeldeformular": 1,
+            "Durch Person in CT": 2,
+            "Mündlich beim Checkin": 4
+        },
+        "Durch wen": {
+            "Person selbst": 1,
+            "Eltern": 2,
+            "Person, die die Gruppenanmeldung durchgeführt hat": 10000
+        }
+    }
+}
