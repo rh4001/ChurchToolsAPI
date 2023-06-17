@@ -689,15 +689,30 @@ class ChurchToolsApi:
         else:
             logging.warning("Something went wrong fetching events: {}".format(response.status_code))
 
-    def set_appointments(self, calendarId, **kwargs):
+    def set_appointments(self, calendarId, startDate, endDate, title, allDay=False,
+                         description='', subtitle='', link='', address={}, **kwargs):
         """
         Method to set appointments
         :param calendarId: ID from calendar to set the appointment in
-        :key calendarId: int
+        :type calendarId: int
+        :param startDate: Start date and time of the appointment (e.g. 2023-06-15T17:00:00Z)
+        :type startDate: str
+        :param endDate: End date and time of the appointment (e.g. 2023-06-15T18:00:00Z)
+        :type endDate: str
+        :param title: Title of the appointment
+        :type title: str
+        :param allDay: Flag indicating if the appointment is an all-day event
+        :type allDay: bool
+        :param description: Description of the appointment
+        :type description: str
+        :param subtitle: Subtitle of the appointment
+        :type subtitle: str
+        :param link: Link related to the appointment
+        :type link: str
         :param kwargs: optional params to modify the appointment
         :key caption
-        :return: tbd
-        :rtype: tbd
+        :return: appointment information
+        :rtype: dict
         """
         url = self.domain + '/api/calendars/{}/appointments'.format(calendarId)
 
@@ -705,10 +720,22 @@ class ChurchToolsApi:
             'accept': 'application/json',
             'Accept-Charset': 'UTF-8'
         }
-        data = {}
+        data = {
+            'startDate': startDate,
+            'endDate': endDate,
+            'caption': title,
+            'allDay': allDay,
+            'information': description,
+            'note': subtitle,
+            'link': link,
+            'address': address
+        }
+
         for key in kwargs.keys():
             if kwargs[key] is not None:
                 data[key] = kwargs[key]
+
+        print(data)
 
         response = self.session.post(url=url, headers=headers, data=data)
 
