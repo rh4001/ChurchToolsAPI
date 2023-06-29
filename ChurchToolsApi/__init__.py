@@ -690,7 +690,7 @@ class ChurchToolsApi:
             logging.warning("Something went wrong fetching events: {}".format(response.status_code))
 
     def set_appointments(self, calendarId, startDate, endDate, title, allDay=False,
-                         description='', subtitle='', link='', address={}, **kwargs):
+                         description='', subtitle='', link='', address=None, **kwargs):
         """
         Method to set appointments
         :param calendarId: ID from calendar to set the appointment in
@@ -714,6 +714,8 @@ class ChurchToolsApi:
         :return: appointment information
         :rtype: dict
         """
+        if address is None:
+            address = {}
         url = self.domain + '/api/calendars/{}/appointments'.format(calendarId)
 
         headers = {
