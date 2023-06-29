@@ -735,13 +735,11 @@ class ChurchToolsApi:
             if kwargs[key] is not None:
                 data[key] = kwargs[key]
 
-        print(data)
-
         response = self.session.post(url=url, headers=headers, data=data)
 
         if response.status_code == 201:
             response_content = json.loads(response.content)
-            print(response_content)
+            # print(response_content)
             response_data = response_content['data'].copy()
             logging.debug("Appointment successfully created {}".format(response_content))
             return response_data
