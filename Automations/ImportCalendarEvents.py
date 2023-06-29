@@ -7,7 +7,6 @@ if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
     logging.info("Started calendar-import")
 
-
     # Create Session
     from secure.defaults import domain as domain_temp
     from secure.secrets import ct_token
