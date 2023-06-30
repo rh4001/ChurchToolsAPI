@@ -689,6 +689,7 @@ class ChurchToolsApi:
         else:
             logging.warning("Something went wrong fetching events: {}".format(response.status_code))
 
+    from pprint import pprint
     def set_appointments(self, calendarId, startDate, endDate, title, allDay=False,
                          description='', subtitle='', link='', address=None, **kwargs):
         """
@@ -720,7 +721,8 @@ class ChurchToolsApi:
 
         headers = {
             'accept': 'application/json',
-            'Accept-Charset': 'UTF-8'
+            'Accept-Charset': 'UTF-8',
+            'content-type': 'application/json'
         }
         data = {
             'startDate': startDate,
@@ -736,6 +738,9 @@ class ChurchToolsApi:
         for key in kwargs.keys():
             if kwargs[key] is not None:
                 data[key] = kwargs[key]
+
+        data = json.dumps(data)
+        print('DatenDict', data)
 
         response = self.session.post(url=url, headers=headers, data=data)
 
