@@ -689,7 +689,6 @@ class ChurchToolsApi:
         else:
             logging.warning("Something went wrong fetching events: {}".format(response.status_code))
 
-    from pprint import pprint
     def set_appointments(self, calendarId, startDate, endDate, title, allDay=False,
                          description='', subtitle='', link='', address=None, **kwargs):
         """
@@ -752,6 +751,30 @@ class ChurchToolsApi:
             return response_data
         else:
             logging.warning("Something went wrong creating the appointment: {}".format(response.status_code))
+
+
+    def get_AllCalendars(self):
+        """
+        Retrieve infos about all calendars from ChurchTools
+        :return: list of calendar-dicts
+        :rtype: list
+        """
+        url = self.domain + '/api/calendars'
+        headers = {
+            'accept': 'application/json'
+        }
+        response = self.session.get(url=url, headers=headers)
+
+        if response.status_code == 200:
+            response_content = json.loads(response.content)
+            response_data = response_content['data'].copy()
+            logging.debug("Calendars loaded successfully {}".format(response_content))
+
+            return response_data
+        else:
+            logging.info(
+                "Calendars could not be loaded with status: {}".format(response.status_code))
+            return None
 
     def get_AllEventData_ajax(self, eventId):
         """
