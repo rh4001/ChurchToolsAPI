@@ -9,7 +9,7 @@ EXCEL = 'Termine.xlsx'
 
 
 def excel_to_dataframe(excel_path):
-    df = pd.read_excel(excel_path, skiprows=1, header=0)
+    df = pd.read_excel(excel_path, sheet_name='Termine', skiprows=0, header=0)
     return df
 
 
@@ -21,7 +21,7 @@ def check_plausibility(df):
     if not invalid_dates.empty:
         logging.warning("Folgende ungültige Datumsangaben gefunden:")
         for index, row in invalid_dates.iterrows():
-            logging.warning(f"Zeile {index + 3}: Titel '{row['Titel']}' Datum Start: '{row['Datum Start']}'")
+            logging.warning(f"Zeile {index + 2}: Titel '{row['Titel']}' Datum Start: '{row['Datum Start']}'")
         has_errors = True
     else:
         has_errors = False
@@ -31,7 +31,7 @@ def check_plausibility(df):
     if not invalid_titles.empty:
         logging.warning("Folgende ungültige Titel gefunden:")
         for index, row in invalid_titles.iterrows():
-            logging.warning(f"Zeile {index + 3}: Titel fehlt oder ist leer")
+            logging.warning(f"Zeile {index + 2}: Titel fehlt oder ist leer")
         has_errors = True
 
     # Überprüfung, ob "Datum Start" länger als ein Jahr her ist
@@ -41,7 +41,7 @@ def check_plausibility(df):
     if not invalid_old_dates.empty:
         logging.error("Folgende Datumsangaben sind länger als ein Jahr her:")
         for index, row in invalid_old_dates.iterrows():
-            logging.error(f"Zeile {index + 3}: Titel '{row['Titel']}' Datum Start: '{row['Datum Start']}'")
+            logging.error(f"Zeile {index + 2}: Titel '{row['Titel']}' Datum Start: '{row['Datum Start']}'")
         has_errors = True
 
     # Überprüfung, ob "Datum Ende" nach "Datum Start" liegt
@@ -50,7 +50,7 @@ def check_plausibility(df):
     if not invalid_end_dates.empty:
         logging.error("Folgende Datumsangaben liegen vor dem Datum Start:")
         for index, row in invalid_end_dates.iterrows():
-            logging.error(f"Zeile {index + 3}: Titel '{row['Titel']}' Datum Ende: '{row['Datum Ende']}'")
+            logging.error(f"Zeile {index + 2}: Titel '{row['Titel']}' Datum Ende: '{row['Datum Ende']}'")
         has_errors = True
 
     # Überprüfung, ob "Uhrzeit Ende" vorhanden ist, wenn "Uhrzeit Start" vorhanden ist
@@ -58,17 +58,16 @@ def check_plausibility(df):
     if not invalid_time_end.empty:
         logging.error("Folgende Datumsangaben haben 'Uhrzeit Start', aber fehlende 'Uhrzeit Ende':")
         for index, row in invalid_time_end.iterrows():
-            logging.error(f"Zeile {index + 3}: Titel '{row['Titel']}'")
+            logging.error(f"Zeile {index + 2}: Titel '{row['Titel']}'")
         has_errors = True
 
     return not has_errors
 
 
 def get_CalendarId(api, excel_path):
-    cell = pd.read_excel(excel_path, header=None).iloc[0, 2]
-    print('Zelle', cell)
-    if isinstance(cell, int):
-        return cell
+    cell = pd.read_excel(excel_path, header=None, sheet_name='Metadaten').iloc[1, 1]
+    if isinstance(cell, int) or isinstance(cell, float):
+        return int(cell)
     elif isinstance(cell, str):
         calendars = api.get_AllCalendars()
         cal_id = None
@@ -89,13 +88,14 @@ def main():
 
     # Read excel-file into dataframe
     df = excel_to_dataframe(EXCEL)
-    # pprint(df)
+    pprint(df)
 
-    no_errors = check_plausibility(df)
-    print(no_errors)
+    excel_ok = check_plausibility(df)
+    excel_ok = False
+    cal_id_ok = False  # TODO: cal_id Prüfung einbauen
 
-    # print('Typ', df['Datum Start'][1], type(df['Datum Start'][1]))
-
+    if not excel_ok or not cal_id_ok:
+        exit()
 
     # Create Session
     # TODO: Rechtekonzept überlegen, da sonst jeder überall Kalendereinträge erstellen kann
