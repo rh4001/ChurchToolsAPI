@@ -82,6 +82,11 @@ def get_CalendarId(api, excel_path):
         logging.error(f"Feld mit Kalendername bzw. -ID ist ungültig: '{cell}'")
 
 
+def sommer_winterzeit():
+    du = True
+    # TODO Datum prüfen und entsprechendes Offset dazurechnen
+
+
 def main():
     logging.getLogger().setLevel(logging.INFO)
     logging.info("Started calendar-import")

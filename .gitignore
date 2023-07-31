@@ -139,4 +139,5 @@ dmypy.json
 
 # Pycharm Run Configurations
 /run_configs/
+/Automations/~*.xlsx
 /Automations/~$Termine.xlsx
