@@ -689,8 +689,45 @@ class ChurchToolsApi:
         else:
             logging.warning("Something went wrong fetching events: {}".format(response.status_code))
 
-    def set_appointments(self, calendarId, startDate, endDate, title, allDay=False,
-                         description='', subtitle='', link='', address=None, **kwargs):
+
+    def get_appointments(self, calendarId, startDate, endDate):
+        """
+        Method to get all the appointments of a timespan
+        :param calendarId: ID from calendar to get the appointments from
+        :type calendarId: int
+        :param startDate: Start date of the timespan (e.g. 2023-06-15)
+        :type startDate: str
+        :param endDate: End date of the timespan(e.g. 2023-06-30)
+        :type endDate: str
+        :return: list of appointments
+        :rtype: list[dict]
+        """
+        url = self.domain + f'/api/calendars/{calendarId}/appointments'
+
+        headers = {
+            'accept': 'application/json'
+        }
+
+        data = {
+            'startDate': startDate,
+            'endDate': endDate
+        }
+
+        response = self.session.get(url=url, headers=headers, data=data)
+
+        if response.status_code == 201 or response.status_code == 200:
+            response_content = json.loads(response.content)
+            # print(response_content)
+            response_data = response_content['data'].copy()
+            logging.debug("Appointments successfully retrieved")
+            return response_content
+        else:
+            logging.warning("Something went wrong creating the appointment: {}".format(response.status_code))
+
+
+
+    def set_appointment(self, calendarId, startDate, endDate, title, allDay=False,
+                        description='', subtitle='', link='', address=None, eventId=None, **kwargs):
         """
         Method to set appointments
         :param calendarId: ID from calendar to set the appointment in
@@ -701,7 +738,7 @@ class ChurchToolsApi:
         :type endDate: str
         :param title: Title of the appointment
         :type title: str
-        :param allDay: Flag indicating if the appointment is an all-day event
+        :param allDay: Flag indicating if the appointment is an all-day event (Seems to have no effect. All day events get created, when start- and endtime are at 00:00)
         :type allDay: bool
         :param description: Description of the appointment
         :type description: str
@@ -709,6 +746,10 @@ class ChurchToolsApi:
         :type subtitle: str
         :param link: Link related to the appointment
         :type link: str
+        :param address: Address parameter
+        :type address: dict
+        :param eventId: ID of the appointment to update
+        :type eventId: int
         :param kwargs: optional params to modify the appointment
         :key caption
         :return: appointment information
@@ -716,7 +757,6 @@ class ChurchToolsApi:
         """
         if address is None:
             address = {}
-        url = self.domain + '/api/calendars/{}/appointments'.format(calendarId)
 
         headers = {
             'accept': 'application/json',
@@ -739,15 +779,20 @@ class ChurchToolsApi:
                 data[key] = kwargs[key]
 
         data = json.dumps(data)
-        print('DatenDict', data)
+        # print('DatenDict', data)
 
-        response = self.session.post(url=url, headers=headers, data=data)
+        if eventId is None:
+            url = self.domain + f'/api/calendars/{calendarId}/appointments'
+            response = self.session.post(url=url, headers=headers, data=data)
+        else:
+            url = self.domain + f'/api/calendars/{calendarId}/appointments/{eventId}'
+            response = self.session.put(url=url, headers=headers, data=data)
 
-        if response.status_code == 201:
+        if response.status_code == 201 or response.status_code == 200:
             response_content = json.loads(response.content)
             # print(response_content)
             response_data = response_content['data'].copy()
-            logging.debug("Appointment successfully created {}".format(response_content))
+            logging.debug("Appointment successfully created or updated {}".format(response_content))
             return response_data
         else:
             logging.warning("Something went wrong creating the appointment: {}".format(response.status_code))
