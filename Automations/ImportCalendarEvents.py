@@ -8,16 +8,21 @@ import re
 from datetime import datetime, time, timedelta
 import pytz
 from dateutil.relativedelta import relativedelta
+from openpyxl import load_workbook
+from time import sleep
+import string
 
+# EXCEL = 'PythonTest.xlsx'
 EXCEL = 'Gruppe Huck.xlsx'
-
+# EXCEL = 'Termine.xlsx'
+SAVE_DELAY = 30
 
 def read_excel_data(excel_path):
     # Termine einlesen
     df = pd.read_excel(excel_path, sheet_name='Termine', skiprows=0, header=0)
 
     # Metadaten einlesen und als dict mit neuen Werten zurückgeben
-    new_keys = ['Kalender', 'Gruppe', 'Automatischer Ort', 'Tage im Voraus']
+    new_keys = ['CT Token', 'Kalender', 'Gruppe', 'Automatischer Ort', 'Tage im Voraus']
     metadata = pd.read_excel(excel_path, sheet_name='Metadaten', header=None)
     if len(metadata) == len(new_keys):
         metadata = metadata.set_index(metadata.columns[0]).to_dict()[metadata.columns[1]]
@@ -110,7 +115,7 @@ def check_plausibility(df):
     return not has_errors
 
 
-def get_CalendarId(api, cal_id_or_name):
+def get_calendar_id(api, cal_id_or_name):
     cell = cal_id_or_name
 
     calendars = api.get_AllCalendars()
@@ -122,6 +127,7 @@ def get_CalendarId(api, cal_id_or_name):
             if calendar['id'] == cell:
                 cal_id = cell
         if cal_id is not None:
+            logging.info(f'Calendar-ID: {cal_id}')
             return cal_id
         else:
             logging.error(f'Kalender-ID "{cell}" konnte nicht gefunden werden')
@@ -131,6 +137,7 @@ def get_CalendarId(api, cal_id_or_name):
             if calendar['name'] == cell.strip():
                 cal_id = calendar['id']
         if cal_id is not None:
+            logging.info(f'Calendar-ID: {cal_id}')
             return cal_id
         else:
             logging.error(f'Kalendername "{cell}" konnte nicht gefunden werden')
@@ -158,7 +165,7 @@ def convert_to_german_time(date, time):
 
 
 def parse_address(address: str):
-    name, street, plz, city = None, None, None, None
+    name, street, plz, city = '', '', '', ''
     address_parts = address.split(',')
     address_parts = [part.strip() for part in address_parts]
 
@@ -209,7 +216,8 @@ def address_test_function():
         "Burg Drachenfels, Drachenweg 1, 24680 Drachenstadt",
         "Am Strand, Strandstadt",
         "Landrat Belli Haus, Ostenwalder Str. 97, 48477 Hörstel",
-        "Von-Arnim-Straße 15, 32791 Lage"
+        "Von-Arnim-Straße 15, 32791 Lage",
+        None
     ]
 
     for address in addresses:
@@ -217,12 +225,14 @@ def address_test_function():
         parsed = parse_address(address)
         print(parsed)
 
+    exit()
+
 
 def get_adress_based_on_name():
     print('TODO')
     # TODO: erst Aliasse auslesen
 
-import string
+
 def find_column_letter(df: pd.DataFrame, column_name: str) -> str:
     column_position = df.columns.get_loc(column_name) + 1
     column_letter = string.ascii_uppercase[column_position - 1]
@@ -230,8 +240,14 @@ def find_column_letter(df: pd.DataFrame, column_name: str) -> str:
 
 
 def main():
-    logging.getLogger().setLevel(logging.INFO)
-    logging.info("Started calendar-import")
+    # Filename with current timestamp
+    excel_name = EXCEL.split(".")[-2].split("/")[-1]
+    filename = f'Logs/{excel_name}__{datetime.now().strftime("%Y-%m-%d__%H-%M-%S")}.log'
+    fh = logging.FileHandler(filename, encoding='utf-8')
+    fh.setLevel(logging.DEBUG)
+    logging.getLogger().addHandler(fh)
+    logging.getLogger().setLevel(logging.DEBUG)
+    logging.info(f"Started calendar-import for file {EXCEL}")
 
     # Read excel-file into dataframe and check for plausibility
     df, metadata, aliases = read_excel_data(EXCEL)
@@ -248,11 +264,11 @@ def main():
     # TODO: Rechtekonzept überlegen, da sonst jeder überall Kalendereinträge erstellen kann
     from secure.defaults import domain as domain_temp
     from secure.secrets import ct_token
+    # ct_token = metadata['CT Token']
     api = ChurchToolsApi(domain_temp, ct_token)
 
     # Get calendar-ID from Excel
-    cal_id = get_CalendarId(api, metadata['Kalender'])
-    # print('CalID', cal_id)
+    cal_id = get_calendar_id(api, metadata['Kalender'])
 
     # Get all calendar-events between the earliest start- and latest enddate from excel
     earliest_date = df['Datum Start'].min().strftime('%Y-%m-%d')
@@ -260,19 +276,31 @@ def main():
     print(earliest_date)
     print(latest_date)
 
-    # Find column-letter of column 'EventID'
-    column_letter = find_column_letter(df, 'EventID')
+    # Find column-letter of relevant columns
+    column_event_id = find_column_letter(df, 'EventID')
+    column_last_change = find_column_letter(df, 'Letzte Änderung')
 
     pprint(api.get_appointments(calendarId=149, startDate=earliest_date, endDate=latest_date))
 
-    exit()
+    # TODO Kalender auslesen und in gleichförmiges dataframe packen.
+    #  Danach mit Excel dataframe vergleichen und Differenz weiterverarbeiten
+
+    # load excelfile for changes
+    try:
+        workbook = load_workbook(filename=EXCEL)
+    except PermissionError:
+        logging.warning(f'{EXCEL} scheint noch geöffnet zu sein')
+        exit(1)
+    # open workbook
+    sheet = workbook['Termine']
 
     # Iterate over dataframe
     for index, row in df.iterrows():
 
-        if row['Beschreibung'] != 'testzeile':
-            continue
-        row['Beschreibung'] = ''
+        print(index, row['Datum Start'], row['Titel'])
+
+        # if row['Beschreibung'] != 'testzeile':
+        #     continue
 
         # Replace empty values with appropriate ones
         if isinstance(row['Uhrzeit Start'], float):
@@ -281,95 +309,86 @@ def main():
             row['Uhrzeit Ende'] = time(0, 0)
         if row['Datum Ende'] is pd.NaT:
             row['Datum Ende'] = row['Datum Start']
+        if isinstance(row['Beschreibung'], float):
+            row['Beschreibung'] = ''
+        if isinstance(row['EventID'], float):
+            row['EventID'] = None
+
+        # Get separated address-data
+        if not isinstance(row['Ort'], float):
+            address = parse_address(row['Ort'])
+        else:
+            address = {'Name': '', 'Straße': '', 'PLZ': '', 'Stadt': ''}
 
         # Get timezone-corrected datetime-strings
         start_date = convert_to_german_time(row['Datum Start'], row['Uhrzeit Start'])
         end_date = convert_to_german_time(row['Datum Ende'], row['Uhrzeit Ende'])
 
-        print(start_date,' bis ', end_date)
-        pprint(row)
+        # print(start_date,' bis ', end_date)
+        # pprint(row)
 
-        continue
-
-        pprint(api.set_appointment(
+        response = api.set_appointment(
             calendarId=cal_id,
             isInternal=False,
-            # repeatId=4,
             title=row['Titel'],
             description=row['Beschreibung'],
             startDate=start_date,
             endDate=end_date,
             campusId=0,
             address={
-                    "city": "city",
-                    # "country": {
-                    #   "emoji": "emoji",
-                    #   "id": 0,
-                    #   "iso2": "iso2",
-                    #   "name": "countryname",
-                    #   "nameTranslated": "countryname translated"
-                    # },
-                    "district": "district",
-                    "latitude": "lat",
-                    "longitude": "longitude",
-                    "meetingAt": "Neue Kirche",
-                    "street": "street",
-                    "zip": "12348"
+                    "city": address['Stadt'],
+                    "meetingAt": address['Name'],
+                    "street": address['Straße'],
+                    "zip": address['PLZ']
             },
-            # eventId=10165
-        ))
+            eventId=row['EventID']
+        )
+        # pprint(response)
 
-        exit()
+        if response is not None:
+            # Write eventID and date of last modification into Excel
+            sheet[column_event_id + str(index + 2)] = response['id']
+            sheet[column_last_change + str(index + 2)] = response['meta']['modifiedDate']
 
+            # Write into log
+            if row['EventID'] is None:
+                msg_start = 'Neuer Termin erstellt: '
+            else:
+                msg_start = 'Termin aktualisiert: '
 
-        # pprint(type( row['Uhrzeit Start']))
+            keys = ['id',
+                    "caption",
+                    "information",
+                    "startDate",
+                    "endDate",
+                    "meetingAt",
+                    "street",
+                    "zip",
+                    "city",
+                    "country"]
 
+            log_msg = ""
+            for key in keys:
+                if key in response and response[key] not in [None, ""]:
+                    log_msg += f"{key}: {response[key]}, "
+                elif key in response["address"] and response["address"][key] not in [None, ""]:
+                    log_msg += f"{key}: {response['address'][key]}, "
+            log_msg = log_msg.rstrip(", ")
 
+            print(msg_start + log_msg + '\n')
+            logging.info(msg_start + log_msg + '\n')
 
+    # Save the file
+    while True:
+        try:
+            workbook.save(filename=EXCEL)
+            break
+        except PermissionError:
+            logging.warning(
+                f'{EXCEL} scheint noch geöffnet zu sein. Versuche jetzt alle {SAVE_DELAY} Sekunden neu zu speichern.')
+            sleep(SAVE_DELAY)
 
-    # if not excel_ok or not cal_id_ok:
-    exit()
-
-
-
-
-
-    # pprint(api.who_am_i())
-    # pprint(api.get_persons(isArchived=False, ids=[1,29]))
-
-    # api.set_appointments(
-    #     calendarId=149,
-    #     allDay=True,
-    #     comment='Kommentar',
-    #     startDate='2023-06-14',
-    #     endDate='2023-06-16',
-    #     title='Titel'
-    # )
-
-    # pprint(api.get_events(eventId=9828))
-
-    pprint(api.set_appointment(
-        calendarId=149,
-        allDay=True,
-        comment='Kommentar jnfwef',
-        isInternal=False,
-        subtitle='Untertitel neu',
-        repeatId=4,
-        title='Titel wurde geändert',
-        description='Neue Beschreibung',
-        link='',
-        startDate='2023-08-16T16:00:00Z',
-        endDate='2023-08-16T19:00:00Z',
-        campusId=0,
-        address={
-            'street': 'Musterstraße 45',
-            'zip': '12345',
-            'city': 'Musterstadt'
-        },
-        eventId=10121
-    ))
-
-    logging.info("finished calendar-import")
+    logging.info("Finished calendar-import")
 
 
 if __name__ == '__main__':

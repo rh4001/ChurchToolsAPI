@@ -796,6 +796,7 @@ class ChurchToolsApi:
             return response_data
         else:
             logging.warning("Something went wrong creating the appointment: {}".format(response.status_code))
+            return None
 
 
     def get_AllCalendars(self):
